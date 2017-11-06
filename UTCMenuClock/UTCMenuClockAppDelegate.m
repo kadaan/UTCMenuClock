@@ -29,7 +29,7 @@
 NSStatusItem *ourStatus;
 NSMenuItem *dateMenuItem;
 NSMenuItem *showTimeZoneItem;
-NSMenuItem *show24HrTimeItem;
+NSMenuItem *showDayOfWeekItem;
 
 - (void) quitProgram:(id)sender {
     // Cleanup here if necessary...
@@ -87,6 +87,7 @@ NSMenuItem *show24HrTimeItem;
     NSDateFormatter* UTCdateDF = [[[NSDateFormatter alloc] init] autorelease];
     NSDateFormatter* UTCdateShortDF = [[[NSDateFormatter alloc] init] autorelease];
     NSDateFormatter* UTCdaynum = [[[NSDateFormatter alloc] init] autorelease];
+    NSDateFormatter* UTCdayOfWeekDF = [[[NSDateFormatter alloc] init] autorelease];
     
     NSTimeZone* UTCtz = [NSTimeZone timeZoneWithAbbreviation:@"UTC"];
 
@@ -98,6 +99,7 @@ NSMenuItem *show24HrTimeItem;
     BOOL showDate = [self fetchBooleanPreference:@"ShowDate"];
     BOOL showSeconds = [self fetchBooleanPreference:@"ShowSeconds"];
     BOOL showJulian = [self fetchBooleanPreference:@"ShowJulianDate"];
+    BOOL showDayOfWeek = [self fetchBooleanPreference:@"ShowDayOfWeek"];
     BOOL showTimeZone = [self fetchBooleanPreference:@"ShowTimeZone"];
     BOOL show24HrTime = [self fetchBooleanPreference:@"24HRTime"];
     
@@ -115,13 +117,15 @@ NSMenuItem *show24HrTimeItem;
         }
     }
     [UTCdateDF setDateStyle:NSDateFormatterFullStyle];
-    [UTCdateShortDF setDateStyle:NSDateFormatterShortStyle];
+    [UTCdateShortDF setDateFormat:@"MM/dd/yy "];
     [UTCdaynum setDateFormat:@"D/"];
+    [UTCdayOfWeekDF setDateFormat:@"EEE "];
 
     NSString* UTCtimepart = [UTCdf stringFromDate: date];
     NSString* UTCdatepart = [UTCdateDF stringFromDate: date];
-    NSString* UTCdateShort = [UTCdateShortDF stringFromDate: date];
+    NSString* UTCdateShort;
     NSString* UTCJulianDay;
+    NSString* UTCdayOfWeekPart;
     NSString* UTCTzString;
     
     
@@ -136,13 +140,21 @@ NSMenuItem *show24HrTimeItem;
     } else { 
         UTCTzString = @"";
     }
-
-    if (showDate) {
-        [ourStatus setTitle:[NSString stringWithFormat:@"%@ %@%@%@", UTCdateShort, UTCJulianDay, UTCtimepart, UTCTzString]];
+    
+    if (showDayOfWeek) {
+        UTCdayOfWeekPart = [UTCdayOfWeekDF stringFromDate: date];
     } else {
-        [ourStatus setTitle:[NSString stringWithFormat:@"%@%@%@", UTCJulianDay, UTCtimepart, UTCTzString]];
+        UTCdayOfWeekPart = @"";
     }
 
+    if (showDate) {
+        UTCdateShort = [UTCdateShortDF stringFromDate: date];
+    } else {
+        UTCdateShort = @"";
+    }
+
+    [ourStatus setTitle:[NSString stringWithFormat:@"%@%@%@%@%@", UTCdayOfWeekPart, UTCdateShort, UTCJulianDay, UTCtimepart, UTCTzString]];
+    
     [dateMenuItem setTitle:UTCdatepart];
 
 }
@@ -173,9 +185,9 @@ NSMenuItem *show24HrTimeItem;
         [[NSUserDefaults standardUserDefaults] setObject:[NSDate date] forKey:dateKey];
 
         [standardUserDefaults setBool:TRUE forKey:@"ShowTimeZone"];
-        [standardUserDefaults setBool:TRUE forKey:@"Show24HrTime"];
+        [standardUserDefaults setBool:TRUE forKey:@"ShowDayOfWeek"];
         [showTimeZoneItem setState:NSOnState];
-        [show24HrTimeItem setState:NSOnState];
+        [showDayOfWeekItem setState:NSOnState];
     }
     [self doDateUpdate];
 
@@ -206,8 +218,6 @@ NSMenuItem *show24HrTimeItem;
     dateMenuItem = mainItem;
 
     NSMenuItem *cp1Item = [[[NSMenuItem alloc] init] autorelease];
-    NSMenuItem *cp2Item = [[[NSMenuItem alloc] init] autorelease];
-    NSMenuItem *cp3Item = [[[NSMenuItem alloc] init] autorelease];
     NSMenuItem *quitItem = [[[NSMenuItem alloc] init] autorelease];
     NSMenuItem *launchItem = [[[NSMenuItem alloc] init] autorelease];
     NSMenuItem *showDateItem = [[[NSMenuItem alloc] init] autorelease];
@@ -216,20 +226,15 @@ NSMenuItem *show24HrTimeItem;
     NSMenuItem *showJulianItem = [[[NSMenuItem alloc] init] autorelease];
  //   NSMenuItem *changeFontItem = [[[NSMenuItem alloc] init] autorelease];
     
+    showDayOfWeekItem = [[[NSMenuItem alloc] init] autorelease];
     showTimeZoneItem = [[[NSMenuItem alloc] init] autorelease];
     NSMenuItem *sep1Item = [NSMenuItem separatorItem];
     NSMenuItem *sep2Item = [NSMenuItem separatorItem];
     NSMenuItem *sep3Item = [NSMenuItem separatorItem];
-    NSMenuItem *sep4Item = [NSMenuItem separatorItem];
     
     [mainItem setTitle:@""];
 
-    [cp1Item setTitle:@"UTC Menu Clock v1.2.3"];
-    [cp2Item setTitle:@"jna@retina.net"];
-    [cp3Item setTitle:@"http://github.com/netik/UTCMenuClock"];
-
-    [cp3Item setEnabled:TRUE];
-    [cp3Item setAction:@selector(openGithubURL:)];
+    [cp1Item setTitle:@"UTC Menu Clock v1.2.4"];
 
     [launchItem setTitle:@"Open at Login"];
     [launchItem setEnabled:TRUE];
@@ -250,6 +255,10 @@ NSMenuItem *show24HrTimeItem;
     [showJulianItem setTitle:@"Show Julian Date"];
     [showJulianItem setEnabled:TRUE];
     [showJulianItem setAction:@selector(togglePreference:)];
+    
+    [showDayOfWeekItem setTitle:@"Show Day Of Week"];
+    [showDayOfWeekItem setEnabled:TRUE];
+    [showDayOfWeekItem setAction:@selector(togglePreference:)];
 
     [showTimeZoneItem setTitle:@"Show Time Zone"];
     [showTimeZoneItem setEnabled:TRUE];
@@ -267,17 +276,14 @@ NSMenuItem *show24HrTimeItem;
     [mainMenu addItem:sep2Item];
     // "---"
     [mainMenu addItem:cp1Item];
-    [mainMenu addItem:cp2Item];
     // "---"
     [mainMenu addItem:sep1Item];
-    [mainMenu addItem:cp3Item];
-    // "---"
-    [mainMenu addItem:sep3Item];
 
     // showDateItem
     BOOL showDate = [self fetchBooleanPreference:@"ShowDate"];
     BOOL showSeconds = [self fetchBooleanPreference:@"ShowSeconds"];
     BOOL showJulian = [self fetchBooleanPreference:@"ShowJulianDate"];
+    BOOL showDayOfWeek = [self fetchBooleanPreference:@"ShowDayOfWeek"];
     BOOL showTimeZone = [self fetchBooleanPreference:@"ShowTimeZone"];
     BOOL show24HrTime = [self fetchBooleanPreference:@"24HRTime"];
     
@@ -307,6 +313,12 @@ NSMenuItem *show24HrTimeItem;
         [showJulianItem setState:NSOffState];
     }
     
+    if (showDayOfWeek) {
+        [showDayOfWeekItem setState:NSOnState];
+    } else {
+        [showDayOfWeekItem setState:NSOffState];
+    }
+    
     if (showTimeZone) {
         [showTimeZoneItem setState:NSOnState];
     } else {
@@ -329,10 +341,11 @@ NSMenuItem *show24HrTimeItem;
     [mainMenu addItem:showDateItem];
     [mainMenu addItem:showSecondsItem];
     [mainMenu addItem:showJulianItem];
+    [mainMenu addItem:showDayOfWeekItem];
     [mainMenu addItem:showTimeZoneItem];
   //  [mainMenu addItem:changeFontItem];
     // "---"
-    [mainMenu addItem:sep4Item];
+    [mainMenu addItem:sep3Item];
     [mainMenu addItem:quitItem];
 
     [theItem setMenu:(NSMenu *)mainMenu];
